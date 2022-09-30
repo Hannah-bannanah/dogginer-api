@@ -1,5 +1,6 @@
 package com.dogginer.dog.service;
 
+import com.dogginer.dog.exception.ClientNotFoundException;
 import com.dogginer.dog.model.Client;
 
 import java.util.List;
@@ -11,5 +12,9 @@ public interface IClientService {
 
     Client addClient(Client client);
 
-    Client deleteById(int clientId);
+    Client deleteById(int clientId) throws ClientNotFoundException;
+
+    void updateClient(int clientId, Client client);
+
+    Client partiallyUpdateClient(int clientId, Client client);
 }

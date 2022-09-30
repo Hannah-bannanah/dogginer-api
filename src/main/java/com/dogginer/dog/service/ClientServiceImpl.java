@@ -1,8 +1,10 @@
 package com.dogginer.dog.service;
 
+import com.dogginer.dog.exception.BadRequestException;
 import com.dogginer.dog.exception.ClientNotFoundException;
 import com.dogginer.dog.repository.IClientRepository;
 import com.dogginer.dog.model.Client;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -57,6 +59,12 @@ public class ClientServiceImpl implements IClientService{
         return savedClient;
     }
 
+    /**
+     * Delete an existing client
+     * @param clientId
+     * @return the deleted object if the operation was successful, null otherwise
+     * @throws ClientNotFoundException
+     */
     @Override
     public Client deleteById(int clientId) {
         Optional<Client> client = clientDao.findById(clientId);
@@ -64,4 +72,63 @@ public class ClientServiceImpl implements IClientService{
         clientDao.deleteById(clientId);
         return client.get();
     }
+
+    /**
+     * Replaces an existing client object with another one
+     * @param clientId the id of the client to be replaced
+     * @param client the new client object
+     */
+    @Override
+    public void updateClient(int clientId, Client client) {
+        if ((Integer) client.getClientId() != null && clientId != client.getClientId())
+            throw new BadRequestException("resource uri and clientId do not match");
+
+        Optional<Client> existingClient = clientDao.findById(clientId);
+        if (!existingClient.isPresent()) throw new ClientNotFoundException("id:" + clientId);
+
+        clientDao.save(client);
+    }
+
+    /**
+     * Makes partial updates to an existing client
+     * @param clientId the id of the client to be replaced
+     * @param update an object with the fields to be modified
+     */
+    @Override
+    public Client partiallyUpdateClient(int clientId, Client update) {
+        if ((Integer) update.getClientId() != null && clientId != update.getClientId())
+            throw new BadRequestException("resource uri and clientId do not match");
+
+        Client existingClient = clientDao.findById(clientId).orElse(null);
+        if (existingClient == null) throw new ClientNotFoundException("id:" + clientId);
+
+        // we check if there are changes in the update object
+        boolean isUpdate = false;
+
+        if (StringUtils.isNotEmpty(update.getEmail())
+                && !StringUtils.equalsIgnoreCase(update.getEmail(), existingClient.getEmail())) {
+            existingClient.setEmail(update.getEmail());
+            isUpdate = true;
+        }
+
+        if (StringUtils.isNotEmpty(update.getUsername())
+                && !StringUtils.equalsIgnoreCase(update.getUsername(), existingClient.getUsername())) {
+            existingClient.setEmail(update.getUsername());
+            isUpdate = true;
+        }
+
+        if (StringUtils.isNotEmpty(update.getPassword())
+                && !passwordEncoder.matches(update.getPassword(), existingClient.getPassword())) {
+            System.out.println("passwords dont match");
+            existingClient.setPassword(passwordEncoder.encode(update.getPassword()));
+            isUpdate = true;
+        }
+
+        if (isUpdate) return null;
+
+        clientDao.save(existingClient);
+        return existingClient;
+    }
+
+
 }

@@ -40,12 +40,12 @@ public class ClientController {
         Client client = clientService.findById(clientId);
 
         if (client == null) throw new ClientNotFoundException("id:" + clientId);
-        return new ResponseEntity<Client>(client,HttpStatus.OK);
+        return new ResponseEntity<>(client,HttpStatus.OK);
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE,
         produces= MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Client> createClient(@RequestBody Client client) {
+    public ResponseEntity<?> createClient(@RequestBody Client client) {
         logger.debug("Received POST request at endpoint /clients");
         Client createdClient = clientService.addClient(client);
 
@@ -60,9 +60,32 @@ public class ClientController {
         return new ResponseEntity<>(client, headers, HttpStatus.CREATED);
     }
 
+    @PutMapping("/{clientId}")
+    public ResponseEntity<?> updateClient(@PathVariable int clientId, @RequestBody Client client) {
+        logger.debug("Received PUT request at endpoint /clients/" + clientId);
+        clientService.updateClient(clientId, client);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{clientId}")
+    public ResponseEntity<Client> pariallyUpdateClient(@PathVariable int clientId, @RequestBody Client client) {
+        logger.debug("Received PATCH request at endpoint /clients/" + clientId);
+        Client updatedClient = clientService.partiallyUpdateClient(clientId, client);
+
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(clientId)
+                .toUri();
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setLocation(location);
+        return new ResponseEntity<Client>(updatedClient, httpHeaders, HttpStatus.OK);
+    }
+
     @DeleteMapping("/{clientId}")
-    public ResponseEntity<Object> deleteClient(@PathVariable int clientId) {
-        logger.debug("Received DELETE request at endopoint /clients/" + clientId);
+    public ResponseEntity<Client> deleteClient(@PathVariable int clientId) {
+        logger.debug("Received DELETE request at endpoint /clients/" + clientId);
         Client deletedClient = clientService.deleteById(clientId);
         return new ResponseEntity<>(deletedClient, HttpStatus.OK);
     }
