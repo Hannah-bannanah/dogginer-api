@@ -60,7 +60,9 @@ public class ClientController {
         return new ResponseEntity<>(client, headers, HttpStatus.CREATED);
     }
 
-    @PutMapping("/{clientId}")
+    @PutMapping(path="/{clientId}",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces= MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> updateClient(@PathVariable int clientId, @RequestBody Client client) {
         logger.debug("Received PUT request at endpoint /clients/" + clientId);
         clientService.updateClient(clientId, client);
@@ -68,8 +70,8 @@ public class ClientController {
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/{clientId}")
-    public ResponseEntity<Client> pariallyUpdateClient(@PathVariable int clientId, @RequestBody Client client) {
+    @PatchMapping(path="/{clientId}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Client> partiallyUpdateClient(@PathVariable int clientId, @RequestBody Client client) {
         logger.debug("Received PATCH request at endpoint /clients/" + clientId);
         Client updatedClient = clientService.partiallyUpdateClient(clientId, client);
 

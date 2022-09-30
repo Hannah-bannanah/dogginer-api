@@ -5,6 +5,8 @@ import com.dogginer.dog.exception.ClientNotFoundException;
 import com.dogginer.dog.repository.IClientRepository;
 import com.dogginer.dog.model.Client;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ import java.util.Optional;
 public class ClientServiceImpl implements IClientService{
     private IClientRepository clientDao;
     private BCryptPasswordEncoder passwordEncoder;
+    private Logger logger = LoggerFactory.getLogger(ClientServiceImpl.class);
 
     @Autowired public ClientServiceImpl(IClientRepository clientDao, BCryptPasswordEncoder passwordEncoder) {
         this.clientDao = clientDao;
@@ -96,9 +99,6 @@ public class ClientServiceImpl implements IClientService{
      */
     @Override
     public Client partiallyUpdateClient(int clientId, Client update) {
-        if ((Integer) update.getClientId() != null && clientId != update.getClientId())
-            throw new BadRequestException("resource uri and clientId do not match");
-
         Client existingClient = clientDao.findById(clientId).orElse(null);
         if (existingClient == null) throw new ClientNotFoundException("id:" + clientId);
 
@@ -113,7 +113,7 @@ public class ClientServiceImpl implements IClientService{
 
         if (StringUtils.isNotEmpty(update.getUsername())
                 && !StringUtils.equalsIgnoreCase(update.getUsername(), existingClient.getUsername())) {
-            existingClient.setEmail(update.getUsername());
+            existingClient.setUsername(update.getUsername());
             isUpdate = true;
         }
 
@@ -124,11 +124,15 @@ public class ClientServiceImpl implements IClientService{
             isUpdate = true;
         }
 
-        if (isUpdate) return null;
+        if (!isUpdate) return null;
 
-        clientDao.save(existingClient);
+        try {
+            clientDao.save(existingClient);
+        } catch (Exception e) {
+            logger.error("There was an error in the method updateUser() in class " + this.getClass().getSimpleName() + ". The trace is: ", e);
+            throw new BadRequestException("The update could not take place");
+        }
         return existingClient;
     }
-
 
 }
