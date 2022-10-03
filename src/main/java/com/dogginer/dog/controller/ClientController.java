@@ -55,7 +55,6 @@ public class ClientController {
                 .buildAndExpand(createdClient.getClientId())
                 .toUri();
         HttpHeaders headers = new HttpHeaders();
-//        return ResponseEntity.created(location).build(); //return the uri of the new resource
         headers.setLocation(location);
         return new ResponseEntity<>(client, headers, HttpStatus.CREATED);
     }
@@ -67,14 +66,20 @@ public class ClientController {
         logger.debug("Received PUT request at endpoint /clients/" + clientId);
         clientService.updateClient(clientId, client);
 
-        return ResponseEntity.noContent().build();
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(clientId)
+                .toUri();
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setLocation(location);
+        return new ResponseEntity<>(null, httpHeaders, HttpStatus.NO_CONTENT);
     }
 
     @PatchMapping(path="/{clientId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Client> partiallyUpdateClient(@PathVariable int clientId, @RequestBody Client client) {
         logger.debug("Received PATCH request at endpoint /clients/" + clientId);
         Client updatedClient = clientService.partiallyUpdateClient(clientId, client);
-
         URI location = ServletUriComponentsBuilder
                 .fromCurrentRequest()
                 .path("/{id}")

@@ -80,12 +80,10 @@ public class ClientServiceImpl implements IClientService{
      * Replaces an existing client object with another one
      * @param clientId the id of the client to be replaced
      * @param client the new client object
+     * @throws ClientNotFoundException
      */
     @Override
     public void updateClient(int clientId, Client client) {
-        if ((Integer) client.getClientId() != null && clientId != client.getClientId())
-            throw new BadRequestException("resource uri and clientId do not match");
-
         Optional<Client> existingClient = clientDao.findById(clientId);
         if (!existingClient.isPresent()) throw new ClientNotFoundException("id:" + clientId);
 
@@ -96,6 +94,7 @@ public class ClientServiceImpl implements IClientService{
      * Makes partial updates to an existing client
      * @param clientId the id of the client to be replaced
      * @param update an object with the fields to be modified
+     * @throws ClientNotFoundException
      */
     @Override
     public Client partiallyUpdateClient(int clientId, Client update) {
@@ -124,13 +123,8 @@ public class ClientServiceImpl implements IClientService{
             isUpdate = true;
         }
 
-        if (!isUpdate) return null;
-
-        try {
+        if (isUpdate) {
             clientDao.save(existingClient);
-        } catch (Exception e) {
-            logger.error("There was an error in the method updateUser() in class " + this.getClass().getSimpleName() + ". The trace is: ", e);
-            throw new BadRequestException("The update could not take place");
         }
         return existingClient;
     }

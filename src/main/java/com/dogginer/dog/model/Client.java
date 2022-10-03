@@ -1,5 +1,7 @@
 package com.dogginer.dog.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import javax.persistence.*;
@@ -18,9 +20,15 @@ public @Data class Client implements Serializable {
 
     private String email;
     private String username;
+
     private String password;
 
     public Client() {
+    }
+
+    @JsonIgnore
+    public String getPassword() {
+        return password;
     }
 
     @Override
