@@ -2,10 +2,13 @@ package com.dogginer.dog.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
+
 import lombok.Data;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -22,6 +25,7 @@ public @Data class Client implements Serializable {
     private String email;
     private String username;
 
+    @JsonProperty(access = Access.WRITE_ONLY)
     private String password;
 
     //uni-directional many-to-many association to Event
@@ -35,14 +39,21 @@ public @Data class Client implements Serializable {
             @JoinColumn(name="event_id")
     }
     )
+
+    @JsonProperty(access = Access.READ_ONLY)
     private List<Event> attendedEvents;
 
     public Client() {
     }
 
-    @JsonIgnore
-    public String getPassword() {
-        return password;
+//    @JsonIgnore
+//    public String getPassword() {
+//        return password;
+//    }
+
+    public void addEvent(Event event) {
+        if (this.attendedEvents == null) this.attendedEvents = new ArrayList<>();
+        this.attendedEvents.add(event);
     }
 
     @Override
