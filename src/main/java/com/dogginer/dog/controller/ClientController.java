@@ -18,7 +18,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/clients")
+@RequestMapping("v1/clients")
 public class ClientController {
 
     private IClientService clientService;
