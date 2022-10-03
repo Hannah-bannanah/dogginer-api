@@ -6,6 +6,7 @@ import lombok.Data;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Objects;
 
 @Entity
@@ -22,6 +23,19 @@ public @Data class Client implements Serializable {
     private String username;
 
     private String password;
+
+    //uni-directional many-to-many association to Event
+    @ManyToMany
+    @JoinTable(
+            name="attendees"
+            , joinColumns={
+            @JoinColumn(name="client_id")
+    }
+            , inverseJoinColumns={
+            @JoinColumn(name="event_id")
+    }
+    )
+    private List<Event> attendedEvents;
 
     public Client() {
     }

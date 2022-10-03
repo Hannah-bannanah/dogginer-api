@@ -2,5 +2,6 @@
 <persistence xmlns="http://java.sun.com/xml/ns/persistence" version="2.0">
     <persistence-unit name="dogginer">
         <class>com.dogginer.dog.model.Client</class>
+        <class>com.dogginer.dog.model.Event</class>
     </persistence-unit>
 </persistence>
