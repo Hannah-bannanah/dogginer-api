@@ -1,11 +1,13 @@
 package com.dogginer.dog.controller;
 
 import com.dogginer.dog.exception.ClientNotFoundException;
-import com.dogginer.dog.service.IClientService;
 import com.dogginer.dog.model.Client;
+import com.dogginer.dog.service.IClientService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -13,9 +15,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import javax.print.attribute.standard.Media;
 import java.net.URI;
 import java.util.List;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
 @RequestMapping("v1/clients")
@@ -35,17 +39,20 @@ public class ClientController {
     }
 
     @GetMapping("/{clientId}")
-    public ResponseEntity<Client> getClient(@PathVariable int clientId) {
+    public EntityModel<Client> getClient(@PathVariable int clientId) {
         logger.debug("Received GET request at endpoint /clients/" + clientId);
         Client client = clientService.findById(clientId);
-
         if (client == null) throw new ClientNotFoundException("id:" + clientId);
-        return new ResponseEntity<>(client,HttpStatus.OK);
+
+        EntityModel<Client> entityModel = EntityModel.of(client);
+        WebMvcLinkBuilder getAllClientsLink = linkTo(methodOn(this.getClass()).getAllClients());
+        entityModel.add(getAllClientsLink.withRel("all-clients"));
+        return entityModel;
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE,
         produces= MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> createClient(@RequestBody Client client) {
+    public ResponseEntity<Client> createClient(@RequestBody Client client) {
         logger.debug("Received POST request at endpoint /clients");
         Client createdClient = clientService.addClient(client);
 
@@ -87,7 +94,7 @@ public class ClientController {
                 .toUri();
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setLocation(location);
-        return new ResponseEntity<Client>(updatedClient, httpHeaders, HttpStatus.OK);
+        return new ResponseEntity<>(updatedClient, httpHeaders, HttpStatus.OK);
     }
 
     @DeleteMapping("/{clientId}")
