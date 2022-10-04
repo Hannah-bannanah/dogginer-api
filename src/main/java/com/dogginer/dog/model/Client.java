@@ -1,6 +1,5 @@
 package com.dogginer.dog.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
@@ -45,11 +44,6 @@ public @Data class Client implements Serializable {
 
     public Client() {
     }
-
-//    @JsonIgnore
-//    public String getPassword() {
-//        return password;
-//    }
 
     public void addEvent(Event event) {
         if (this.attendedEvents == null) this.attendedEvents = new ArrayList<>();
