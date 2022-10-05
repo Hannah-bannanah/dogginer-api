@@ -1,6 +1,6 @@
 package com.dogginer.dog.controller;
 
-import com.dogginer.dog.exception.ClientNotFoundException;
+import com.dogginer.dog.exception.ResourceNotFoundException;
 import com.dogginer.dog.model.Client;
 import com.dogginer.dog.service.IClientService;
 import org.slf4j.Logger;
@@ -42,7 +42,7 @@ public class ClientController {
     public EntityModel<Client> getClient(@PathVariable int clientId) {
         logger.debug("Received GET request at endpoint /clients/" + clientId);
         Client client = clientService.findById(clientId);
-        if (client == null) throw new ClientNotFoundException("id:" + clientId);
+        if (client == null) throw new ResourceNotFoundException("clienId:" + clientId);
 
         EntityModel<Client> entityModel = EntityModel.of(client);
         WebMvcLinkBuilder getAllClientsLink = linkTo(methodOn(this.getClass()).getAllClients());

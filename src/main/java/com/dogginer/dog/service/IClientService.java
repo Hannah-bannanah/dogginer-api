@@ -1,6 +1,6 @@
 package com.dogginer.dog.service;
 
-import com.dogginer.dog.exception.ClientNotFoundException;
+import com.dogginer.dog.exception.ResourceNotFoundException;
 import com.dogginer.dog.model.Client;
 
 import java.util.List;
@@ -12,7 +12,7 @@ public interface IClientService {
 
     Client addClient(Client client);
 
-    Client deleteById(int clientId) throws ClientNotFoundException;
+    Client deleteById(int clientId) throws ResourceNotFoundException;
 
     void updateClient(int clientId, Client client);
 
