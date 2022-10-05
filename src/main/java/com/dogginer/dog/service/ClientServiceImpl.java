@@ -1,7 +1,6 @@
 package com.dogginer.dog.service;
 
-import com.dogginer.dog.exception.BadRequestException;
-import com.dogginer.dog.exception.ClientNotFoundException;
+import com.dogginer.dog.exception.ResourceNotFoundException;
 import com.dogginer.dog.repository.IClientRepository;
 import com.dogginer.dog.model.Client;
 import org.apache.commons.lang3.StringUtils;
@@ -66,12 +65,12 @@ public class ClientServiceImpl implements IClientService{
      * Delete an existing client
      * @param clientId
      * @return the deleted object if the operation was successful, null otherwise
-     * @throws ClientNotFoundException
+     * @throws ResourceNotFoundException
      */
     @Override
     public Client deleteById(int clientId) {
         Optional<Client> client = clientDao.findById(clientId);
-        if (!client.isPresent()) throw new ClientNotFoundException("id:" + clientId);
+        if (!client.isPresent()) throw new ResourceNotFoundException("clientId:" + clientId);
         clientDao.deleteById(clientId);
         return client.get();
     }
@@ -80,13 +79,14 @@ public class ClientServiceImpl implements IClientService{
      * Replaces an existing client object with another one
      * @param clientId the id of the client to be replaced
      * @param client the new client object
-     * @throws ClientNotFoundException
+     * @throws ResourceNotFoundException
      */
     @Override
     public void updateClient(int clientId, Client client) {
         Optional<Client> existingClient = clientDao.findById(clientId);
-        if (!existingClient.isPresent()) throw new ClientNotFoundException("id:" + clientId);
+        if (!existingClient.isPresent()) throw new ResourceNotFoundException("clientId:" + clientId);
 
+        clientDao.save(client);
         clientDao.save(client);
     }
 
@@ -94,12 +94,12 @@ public class ClientServiceImpl implements IClientService{
      * Makes partial updates to an existing client
      * @param clientId the id of the client to be replaced
      * @param update an object with the fields to be modified
-     * @throws ClientNotFoundException
+     * @throws ResourceNotFoundException
      */
     @Override
     public Client partiallyUpdateClient(int clientId, Client update) {
         Client existingClient = clientDao.findById(clientId).orElse(null);
-        if (existingClient == null) throw new ClientNotFoundException("id:" + clientId);
+        if (existingClient == null) throw new ResourceNotFoundException("clientId:" + clientId);
 
         // we check if there are changes in the update object
         boolean isUpdate = false;
@@ -129,4 +129,18 @@ public class ClientServiceImpl implements IClientService{
         return existingClient;
     }
 
+    //    @PutMapping("/employees/{id}")
+//    Employee replaceEmployee(@RequestBody Employee newEmployee, @PathVariable Long id) {
+//
+//        return repository.findById(id)
+//                .map(employee -> {
+//                    employee.setName(newEmployee.getName());
+//                    employee.setRole(newEmployee.getRole());
+//                    return repository.save(employee);
+//                })
+//                .orElseGet(() -> {
+//                    newEmployee.setId(id);
+//                    return repository.save(newEmployee);
+//                });
+//    }
 }

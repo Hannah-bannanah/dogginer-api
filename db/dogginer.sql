@@ -18,6 +18,7 @@ CREATE TABLE events (
   date DATETIME NOT NULL,
   image_url VARCHAR(200) DEFAULT 'https://picsum.photos/id/237/300',
   price DECIMAL(13, 4) NOT NULL,
+  UNIQUE (title),
   CHECK (price >= 0.00)
 );
 
