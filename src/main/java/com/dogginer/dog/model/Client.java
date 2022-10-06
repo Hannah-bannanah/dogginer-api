@@ -4,17 +4,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
 import lombok.Data;
+import org.springframework.hateoas.RepresentationModel;
 
 import javax.persistence.*;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Entity
 @Table(name="clients")
 @NamedQuery(name="Client.findAll", query="SELECT c FROM Client c")
-public @Data class Client implements Serializable {
+public @Data class Client extends RepresentationModel<Client> implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
@@ -32,22 +31,17 @@ public @Data class Client implements Serializable {
     @JoinTable(
             name="attendees"
             , joinColumns={
-            @JoinColumn(name="client_id")
-    }
+                @JoinColumn(name="client_id")
+            }
             , inverseJoinColumns={
-            @JoinColumn(name="event_id")
-    }
+                @JoinColumn(name="event_id")
+            }
     )
 
     @JsonProperty(access = Access.READ_ONLY)
-    private List<Event> attendedEvents;
+    private Set<Event> attendedEvents = new HashSet<>();
 
     public Client() {
-    }
-
-    public void addEvent(Event event) {
-        if (this.attendedEvents == null) this.attendedEvents = new ArrayList<>();
-        this.attendedEvents.add(event);
     }
 
     @Override
