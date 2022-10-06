@@ -1,7 +1,6 @@
 package com.dogginer.dog.service;
 
 import com.dogginer.dog.exception.BadRequestException;
-import com.dogginer.dog.exception.DuplicateEntryException;
 import com.dogginer.dog.exception.ResourceNotFoundException;
 import com.dogginer.dog.model.Event;
 import com.dogginer.dog.repository.IEventRepository;
@@ -10,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import java.sql.SQLException;
 import java.util.List;
 
 @Service
@@ -49,8 +49,7 @@ public class EventServiceImpl implements IEventService {
     @Override
     public Event addEvent(Event event) {
         event.setEventId(0);
-        Event savedEvent = eventRepository.save(event);
-        return savedEvent;
+        return this.saveEvent(event);
     }
 
     /**
@@ -63,7 +62,8 @@ public class EventServiceImpl implements IEventService {
         Event existingEvent =  eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("eventId:" + eventId));
         event.setEventId(existingEvent.getEventId());
-        return eventRepository.save(event);
+        return this.saveEvent(event);
+
     }
 
     /**
@@ -77,9 +77,14 @@ public class EventServiceImpl implements IEventService {
         Event updatedEvent =  eventRepository.findById(eventId)
                 .map(existingEvent -> copyNonNullFields(eventUpdates, existingEvent))
                 .orElseThrow(() -> new ResourceNotFoundException("eventId:" + eventId));
-        return eventRepository.save(updatedEvent);
+        return this.saveEvent(updatedEvent);
     }
 
+    /**
+     * Delete an event by id
+     * @param eventId the id of the event to be deleted
+     * @return the deleted event
+     */
     @Override
     public Event deleteById(int eventId) {
         Event deletedEvent = eventRepository.findById(eventId)
@@ -100,4 +105,16 @@ public class EventServiceImpl implements IEventService {
         return destination;
     }
 
+    private Event saveEvent(Event event) {
+        Event updatedEvent = null;
+        try {
+            updatedEvent = eventRepository.save(event);
+        } catch (DataIntegrityViolationException e) {
+            throw new BadRequestException(e.getCause().getCause().getLocalizedMessage());
+        } catch (Exception e) {
+            throw new BadRequestException("Bad request");
+        }
+
+        return updatedEvent;
+    }
 }
