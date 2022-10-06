@@ -21,6 +21,6 @@ public  @Data class Event extends RepresentationModel<Event> implements Serializ
     private String title;
     private String description;
     private LocalDateTime date;
-    private String imageUrl;
+    private String imageUrl = "https://picsum.photos/id/300";
     private Double price;
 }
