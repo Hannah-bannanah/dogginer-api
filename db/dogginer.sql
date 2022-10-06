@@ -16,7 +16,7 @@ CREATE TABLE events (
   title VARCHAR(50) NOT NULL,
   description TEXT NOT NULL,
   date DATETIME NOT NULL,
-  image_url VARCHAR(200) DEFAULT 'https://picsum.photos/id/237/300',
+  image_url VARCHAR(200) DEFAULT 'https://picsum.photos/id/300',
   price DECIMAL(13, 4) NOT NULL,
   UNIQUE (title),
   CHECK (price >= 0.00)
@@ -32,5 +32,5 @@ CREATE TABLE attendees (
 
 -- CREATE USER 'utechnest'@'localhost' IDENTIFIED BY 'utechnest';
 -- GRANT ALL PRIVILEGES ON technest.* TO 'utechnest'@'localhost';
-CREATE USER 'udogginer'@'%' IDENTIFIED BY 'udogginer';
-GRANT ALL PRIVILEGES ON dogginer.* TO 'udogginer'@'%';
+-- CREATE USER 'udogginer'@'%' IDENTIFIED BY 'udogginer';
+-- GRANT ALL PRIVILEGES ON dogginer.* TO 'udogginer'@'%';
