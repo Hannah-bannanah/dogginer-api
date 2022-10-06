@@ -14,7 +14,7 @@ public interface IClientService {
 
     Client deleteById(int clientId) throws ResourceNotFoundException;
 
-    void updateClient(int clientId, Client client);
+    Client updateClient(int clientId, Client client);
 
     Client partiallyUpdateClient(int clientId, Client client);
 }

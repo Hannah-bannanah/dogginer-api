@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import javax.transaction.Transactional;
 import java.net.URI;
 import java.util.List;
 
@@ -39,68 +40,66 @@ public class ClientController {
     }
 
     @GetMapping("/{clientId}")
-    public EntityModel<Client> getClient(@PathVariable int clientId) {
-        logger.debug("Received GET request at endpoint /clients/" + clientId);
+    public Client getClient(@PathVariable int clientId) {
+        logger.debug("Received GET request at endpoint v1/clients/" + clientId);
         Client client = clientService.findById(clientId);
-        if (client == null) throw new ResourceNotFoundException("clienId:" + clientId);
 
-        EntityModel<Client> entityModel = EntityModel.of(client);
         WebMvcLinkBuilder getAllClientsLink = linkTo(methodOn(this.getClass()).getAllClients());
-        entityModel.add(getAllClientsLink.withRel("all-clients"));
-        return entityModel;
+        client.add(getAllClientsLink.withRel("all-clients"));
+
+        return client;
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE,
         produces= MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Client> createClient(@RequestBody Client client) {
-        logger.debug("Received POST request at endpoint /clients");
+    @ResponseStatus(HttpStatus.CREATED)
+    public Client createClient(@RequestBody Client client) {
+        logger.debug("Received POST request at endpoint v1/clients");
+
         Client createdClient = clientService.addClient(client);
 
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(createdClient.getClientId())
-                .toUri();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setLocation(location);
-        return new ResponseEntity<>(client, headers, HttpStatus.CREATED);
+        createdClient.add(linkTo(methodOn(this.getClass()).getAllClients()).withRel("all-clients"));
+        createdClient.add(linkTo(methodOn(this.getClass()).getClient(createdClient.getClientId())).withSelfRel());
+
+        return createdClient;
     }
 
     @PutMapping(path="/{clientId}",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces= MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> updateClient(@PathVariable int clientId, @RequestBody Client client) {
-        logger.debug("Received PUT request at endpoint /clients/" + clientId);
-        clientService.updateClient(clientId, client);
+    public Client updateClient(@PathVariable int clientId, @RequestBody Client client) {
+        logger.debug("Received PUT request at endpoint v1/clients/" + clientId);
 
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(clientId)
-                .toUri();
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setLocation(location);
-        return new ResponseEntity<>(null, httpHeaders, HttpStatus.NO_CONTENT);
+        Client updatedClient = clientService.updateClient(clientId, client);
+
+        updatedClient.add(linkTo(methodOn(this.getClass()).getAllClients()).withRel("all-clients"));
+        updatedClient.add(linkTo(methodOn(this.getClass()).getClient(clientId)).withSelfRel());
+
+        return updatedClient;
     }
 
     @PatchMapping(path="/{clientId}", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Client> partiallyUpdateClient(@PathVariable int clientId, @RequestBody Client client) {
-        logger.debug("Received PATCH request at endpoint /clients/" + clientId);
+    public Client partiallyUpdateClient(@PathVariable int clientId, @RequestBody Client client) {
+        logger.debug("Received PATCH request at endpoint v1/clients/" + clientId);
+
         Client updatedClient = clientService.partiallyUpdateClient(clientId, client);
-        URI location = ServletUriComponentsBuilder
-                .fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(clientId)
-                .toUri();
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setLocation(location);
-        return new ResponseEntity<>(updatedClient, httpHeaders, HttpStatus.OK);
+
+        updatedClient.add(linkTo(methodOn(this.getClass()).getAllClients()).withRel("all-clients"));
+        updatedClient.add(linkTo(methodOn(this.getClass()).getClient(clientId)).withSelfRel());
+
+        return updatedClient;
     }
 
     @DeleteMapping("/{clientId}")
-    public ResponseEntity<Client> deleteClient(@PathVariable int clientId) {
-        logger.debug("Received DELETE request at endpoint /clients/" + clientId);
+    @Transactional
+    public Client deleteClient(@PathVariable int clientId) {
+        logger.debug("Received DELETE request at endpoint v1/clients/" + clientId);
+
         Client deletedClient = clientService.deleteById(clientId);
-        return new ResponseEntity<>(deletedClient, HttpStatus.OK);
+
+        deletedClient.add(linkTo(methodOn(this.getClass()).getAllClients()).withRel("all-clients"));
+        deletedClient.add(linkTo(methodOn(this.getClass()).getAllClients()).withRel("all-clients"));
+
+        return deletedClient;
     }
 }

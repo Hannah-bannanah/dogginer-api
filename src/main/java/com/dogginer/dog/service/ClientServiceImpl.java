@@ -1,5 +1,6 @@
 package com.dogginer.dog.service;
 
+import com.dogginer.dog.exception.BadRequestException;
 import com.dogginer.dog.exception.ResourceNotFoundException;
 import com.dogginer.dog.repository.IClientRepository;
 import com.dogginer.dog.model.Client;
@@ -7,9 +8,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,12 +24,12 @@ import java.util.Optional;
 
 @Service
 public class ClientServiceImpl implements IClientService{
-    private IClientRepository clientDao;
+    private IClientRepository clientRepository;
     private BCryptPasswordEncoder passwordEncoder;
     private Logger logger = LoggerFactory.getLogger(ClientServiceImpl.class);
 
-    @Autowired public ClientServiceImpl(IClientRepository clientDao, BCryptPasswordEncoder passwordEncoder) {
-        this.clientDao = clientDao;
+    @Autowired public ClientServiceImpl(IClientRepository clientRepository, BCryptPasswordEncoder passwordEncoder) {
+        this.clientRepository = clientRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -36,7 +39,7 @@ public class ClientServiceImpl implements IClientService{
      */
     @Override
     public List<Client> findAll() {
-        return clientDao.findAll();
+        return clientRepository.findAll();
     }
 
     /**
@@ -46,7 +49,9 @@ public class ClientServiceImpl implements IClientService{
      */
     @Override
     public Client findById(int clientId) {
-        return clientDao.findById(clientId).orElse(null);
+
+        return clientRepository.findById(clientId)
+                .orElseThrow(() -> new ResourceNotFoundException("clientId:" + clientId));
     }
 
     /**
@@ -56,9 +61,9 @@ public class ClientServiceImpl implements IClientService{
      */
     @Override
     public Client addClient(Client client) {
+        client.setClientId(0);
         client.setPassword(passwordEncoder.encode(client.getPassword()));
-        Client savedClient = clientDao.save(client);
-        return savedClient;
+        return this.saveClient(client);
     }
 
     /**
@@ -68,11 +73,12 @@ public class ClientServiceImpl implements IClientService{
      * @throws ResourceNotFoundException
      */
     @Override
+    @Transactional
     public Client deleteById(int clientId) {
-        Optional<Client> client = clientDao.findById(clientId);
-        if (!client.isPresent()) throw new ResourceNotFoundException("clientId:" + clientId);
-        clientDao.deleteById(clientId);
-        return client.get();
+        Client deletedClient = clientRepository.findById(clientId)
+                .orElseThrow(() -> new ResourceNotFoundException("clientId:" + clientId));
+        clientRepository.deleteById(clientId);
+        return deletedClient;
     }
 
     /**
@@ -82,65 +88,46 @@ public class ClientServiceImpl implements IClientService{
      * @throws ResourceNotFoundException
      */
     @Override
-    public void updateClient(int clientId, Client client) {
-        Optional<Client> existingClient = clientDao.findById(clientId);
-        if (!existingClient.isPresent()) throw new ResourceNotFoundException("clientId:" + clientId);
+    public Client updateClient(int clientId, Client client) {
+        Client existingClient = clientRepository.findById(clientId)
+                .orElseThrow(() -> new ResourceNotFoundException("clientId:" + clientId));
 
-        clientDao.save(client);
-        clientDao.save(client);
+        client.setClientId(existingClient.getClientId());
+        return this.saveClient(client);
     }
 
     /**
      * Makes partial updates to an existing client
      * @param clientId the id of the client to be replaced
-     * @param update an object with the fields to be modified
+     * @param clientUpdates an object with the fields to be modified
      * @throws ResourceNotFoundException
      */
     @Override
-    public Client partiallyUpdateClient(int clientId, Client update) {
-        Client existingClient = clientDao.findById(clientId).orElse(null);
-        if (existingClient == null) throw new ResourceNotFoundException("clientId:" + clientId);
-
-        // we check if there are changes in the update object
-        boolean isUpdate = false;
-
-        if (StringUtils.isNotEmpty(update.getEmail())
-                && !StringUtils.equalsIgnoreCase(update.getEmail(), existingClient.getEmail())) {
-            existingClient.setEmail(update.getEmail());
-            isUpdate = true;
-        }
-
-        if (StringUtils.isNotEmpty(update.getUsername())
-                && !StringUtils.equalsIgnoreCase(update.getUsername(), existingClient.getUsername())) {
-            existingClient.setUsername(update.getUsername());
-            isUpdate = true;
-        }
-
-        if (StringUtils.isNotEmpty(update.getPassword())
-                && !passwordEncoder.matches(update.getPassword(), existingClient.getPassword())) {
-            System.out.println("passwords dont match");
-            existingClient.setPassword(passwordEncoder.encode(update.getPassword()));
-            isUpdate = true;
-        }
-
-        if (isUpdate) {
-            clientDao.save(existingClient);
-        }
-        return existingClient;
+    public Client partiallyUpdateClient(int clientId, Client clientUpdates) {
+        Client updatedClient = clientRepository.findById(clientId)
+                .map(existingClient -> copyNonNullFields(clientUpdates, existingClient))
+                .orElseThrow(() -> new ResourceNotFoundException("clientId:" + clientId));
+        return this.saveClient(updatedClient);
     }
 
-    //    @PutMapping("/employees/{id}")
-//    Employee replaceEmployee(@RequestBody Employee newEmployee, @PathVariable Long id) {
-//
-//        return repository.findById(id)
-//                .map(employee -> {
-//                    employee.setName(newEmployee.getName());
-//                    employee.setRole(newEmployee.getRole());
-//                    return repository.save(employee);
-//                })
-//                .orElseGet(() -> {
-//                    newEmployee.setId(id);
-//                    return repository.save(newEmployee);
-//                });
-//    }
+    private Client copyNonNullFields(Client origin, Client destination) {
+        if (StringUtils.isNotEmpty(origin.getUsername()))
+            destination.setUsername(origin.getUsername());
+        if (StringUtils.isNotEmpty(origin.getEmail()))
+            destination.setEmail(origin.getEmail());
+        return destination;
+    }
+
+    private Client saveClient(Client client) {
+        Client updatedClient = null;
+        try {
+            updatedClient = clientRepository.save(client);
+        } catch (DataIntegrityViolationException e) {
+            throw new BadRequestException(e.getCause().getCause().getLocalizedMessage());
+        } catch (Exception e) {
+            throw new BadRequestException("Bad request");
+        }
+
+        return updatedClient;
+    }
 }
