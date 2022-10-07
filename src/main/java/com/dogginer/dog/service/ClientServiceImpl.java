@@ -93,6 +93,7 @@ public class ClientServiceImpl implements IClientService{
                 .orElseThrow(() -> new ResourceNotFoundException("clientId:" + clientId));
 
         client.setClientId(existingClient.getClientId());
+        client.setPassword(passwordEncoder.encode(client.getPassword()));
         return this.saveClient(client);
     }
 
@@ -115,6 +116,8 @@ public class ClientServiceImpl implements IClientService{
             destination.setUsername(origin.getUsername());
         if (StringUtils.isNotEmpty(origin.getEmail()))
             destination.setEmail(origin.getEmail());
+        if (StringUtils.isNotEmpty(origin.getPassword()))
+            destination.setPassword(passwordEncoder.encode(origin.getPassword()));
         return destination;
     }
 
