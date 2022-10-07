@@ -5,10 +5,12 @@ import com.dogginer.dog.service.IEventService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -25,9 +27,15 @@ public class EventController {
     }
 
     @GetMapping("")
-    public List<Event> getAllEvents() {
+    public CollectionModel<Event> getAllEvents() {
         logger.debug("Received GET request at endpoint v1/events");
-        return eventService.findAll();
+
+        List<Event> events = eventService.findAll()
+                .stream()
+                .map(event ->
+                        event.add(linkTo(methodOn(this.getClass()).getEvent(event.getEventId())).withSelfRel()))
+                .collect(Collectors.toList());
+        return CollectionModel.of(events);
     }
 
     @GetMapping("/{eventId}")
