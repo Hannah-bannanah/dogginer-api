@@ -1,23 +1,20 @@
 package com.dogginer.dog.controller;
 
-import com.dogginer.dog.exception.ResourceNotFoundException;
 import com.dogginer.dog.model.Client;
 import com.dogginer.dog.service.IClientService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.transaction.Transactional;
-import java.net.URI;
+import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -34,9 +31,14 @@ public class ClientController {
     }
 
     @GetMapping()
-    public List<Client> getAllClients() {
+    public CollectionModel<Client> getAllClients() {
         logger.debug("Received GET request at endpoint /clients");
-        return clientService.findAll();
+        List<Client> clients = clientService.findAll()
+                .stream()
+                .map(client ->
+                        client.add(linkTo(methodOn(this.getClass()).getClient(client.getClientId())).withSelfRel()))
+                .collect(Collectors.toList());
+        return CollectionModel.of(clients);
     }
 
     @GetMapping("/{clientId}")
