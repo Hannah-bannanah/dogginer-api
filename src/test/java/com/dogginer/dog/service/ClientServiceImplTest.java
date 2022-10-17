@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @TestPropertySource("/application.properties")
 @SpringBootTest
-public class ClientServiceImplTests {
+public class ClientServiceImplTest {
 
     @Autowired
     BCryptPasswordEncoder passwordEncoder;
