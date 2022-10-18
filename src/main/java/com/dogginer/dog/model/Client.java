@@ -18,7 +18,7 @@ public @Data class Client extends RepresentationModel<Client> implements Seriali
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int clientId;
+    private Integer clientId;
 
     private String email;
     private String username;
@@ -49,7 +49,7 @@ public @Data class Client extends RepresentationModel<Client> implements Seriali
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Client client = (Client) o;
-        return getClientId() == client.getClientId();
+        return getClientId().equals(client.getClientId());
     }
 
     @Override
