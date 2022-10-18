@@ -16,7 +16,7 @@ public  @Data class Event extends RepresentationModel<Event> implements Serializ
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int eventId;
+    private Integer eventId;
 
     private String title;
     private String description;
