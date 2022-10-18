@@ -5,9 +5,11 @@ import com.dogginer.dog.exception.ResourceNotFoundException;
 import com.dogginer.dog.model.Client;
 import com.dogginer.dog.service.IClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -19,7 +21,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -123,25 +126,31 @@ class ClientControllerTest {
     @Test
     void createClient() throws Exception {
         Client newClient = this.createTestClient();
-        newClient.setClientId(0);
-        Client savedClient = this.createTestClient();
+        newClient.setClientId(null);
+//        Client savedClient = this.createTestClient();
         Client wrongClient = this.createTestClient();
+        wrongClient.setClientId(0);
 
-        when(clientService.addClient(newClient)).thenReturn(savedClient);
+//        when(clientService.addClient(newClient)).thenReturn(savedClient);
+        when(clientService.addClient(newClient)).then(invocation -> {
+            Client savedClient = invocation.getArgument(0);
+            savedClient.setClientId(1);
+            return savedClient;
+        });
         when(clientService.addClient(wrongClient)).thenThrow(new BadRequestException("Bad request"));
 
         mockMvc.perform(post("/v1/clients")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(newClient)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.clientId").value("1"))
-                .andExpect(jsonPath("$.username").value("testClient1"))
-                .andExpect(jsonPath("$.email").value("testClient1@email.com"))
+                .andExpect(jsonPath("$.clientId", is(1)))
+                .andExpect(jsonPath("$.username", is("testClient1")))
+                .andExpect(jsonPath("$.email", is("testClient1@email.com")))
                 .andExpect(jsonPath("$.password").doesNotExist());
 
         mockMvc.perform(post("/v1/clients")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(savedClient)))
+                .content(objectMapper.writeValueAsString(wrongClient)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -197,24 +206,30 @@ class ClientControllerTest {
         password.setPassword("newPassword");
         updatedPasswordClient.setPassword(password.getPassword());
 
-        when(clientService.partiallyUpdateClient(1, email)).thenReturn(updatedEmailClient);
-        when(clientService.partiallyUpdateClient(2, username)).thenReturn(updatedUsernameClient);
-        when(clientService.partiallyUpdateClient(3, password)).thenReturn(updatedPasswordClient);
-        //mock wrong data response
-        when(clientService.partiallyUpdateClient(100, email)).thenThrow(new BadRequestException("Bad request"));
-        //mock inexistent clientId response
-        when(clientService.partiallyUpdateClient(0, email)).thenThrow(new ResourceNotFoundException("clientId:0"));
+        when(clientService.partiallyUpdateClient(anyInt(), ArgumentMatchers.any(Client.class))).then(invocation -> {
+            int clientId = invocation.getArgument(0);
+            if (clientId == 100) throw new BadRequestException("Bad request"); // test wrong data
+            if (clientId == 0) throw new ResourceNotFoundException("clientId:0"); // test inexistent client
+            Client update = invocation.getArgument(1);
+            Client updatedClient = this.createTestClient();
+            updatedClient.setClientId(clientId);
+            if (StringUtils.isNotEmpty(update.getPassword())) updatedClient.setPassword(update.getPassword());
+            if (StringUtils.isNotEmpty(update.getEmail())) updatedClient.setEmail(update.getEmail());
+            if (StringUtils.isNotEmpty(update.getUsername())) updatedClient.setUsername(update.getUsername());
+
+            return updatedClient;
+        });
 
         mockMvc.perform(patch("/v1/clients/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(email)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.clientId").value("1"))
-                .andExpect(jsonPath("$.username").value("testClient1"))
-                .andExpect(jsonPath("$.email").value("newEmail@email.com"))
+                .andExpect(jsonPath("$.clientId", is(1)))
+                .andExpect(jsonPath("$.username", is("testClient1")))
+                .andExpect(jsonPath("$.email", is("newEmail@email.com")))
                 .andExpect(jsonPath("$.password").doesNotExist());
 
-        mockMvc.perform(patch("/v1/clients/2")
+        mockMvc.perform(patch("/v1/clients/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(username)))
                 .andExpect(status().isOk());
@@ -224,9 +239,9 @@ class ClientControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(password)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.clientId").value("1"))
-                .andExpect(jsonPath("$.username").value("testClient1"))
-                .andExpect(jsonPath("$.email").value("testClient1@email.com"))
+                .andExpect(jsonPath("$.clientId", is(3)))
+                .andExpect(jsonPath("$.username", is("testClient1")))
+                .andExpect(jsonPath("$.email", is("testClient1@email.com")))
                 .andExpect(jsonPath("$.password").doesNotExist());
 
         mockMvc.perform(patch("/v1/clients/100")
