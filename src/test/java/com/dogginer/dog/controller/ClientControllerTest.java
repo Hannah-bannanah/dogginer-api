@@ -58,14 +58,6 @@ class ClientControllerTest {
 
     @AfterEach
     void afterEach() {
-        for (int i = 0; i < 3; i ++) {
-            Client client = new Client();
-            client.setPassword("pwd" + i);
-            client.setUsername("client" + i);
-            client.setEmail("email" + i);
-            client.setClientId(i + 1);
-            this.clientList.add(client);
-        }
         this.clientList = new ArrayList<>();
     }
 
