@@ -1,148 +1,205 @@
 package com.dogginer.dog.service;
 
+import com.dogginer.dog.exception.BadRequestException;
 import com.dogginer.dog.exception.ResourceNotFoundException;
 import com.dogginer.dog.model.Client;
+import com.dogginer.dog.repository.IClientRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
-@TestPropertySource("/application.properties")
 @SpringBootTest
-public class ClientServiceImplTest {
+@AutoConfigureMockMvc
+class ClientServiceImplTest {
 
     @Autowired
-    BCryptPasswordEncoder passwordEncoder;
+    private MockMvc mockMvc;
 
-    @Autowired IClientService clientService;
+    @MockBean
+    private IClientRepository clientRepository;
 
-    private Client testClient = null;
+    @Autowired
+    private IClientService clientService;
+
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
+
+    private List<Client> clientList = new ArrayList<>();
 
     @BeforeEach
-    public void beforeEach() {
-        this.createTestClient();
+    void beforeEach() {
+        for (int i = 0; i < 3; i ++) {
+            Client client = new Client();
+            client.setPassword("pwd" + i);
+            client.setUsername("client" + i);
+            client.setEmail("email" + i);
+            client.setClientId(i + 1);
+            this.clientList.add(client);
+        }
+
     }
 
     @AfterEach
-    public void afterEach() {
-        this.deleteTestClient();
-    }
-
-    private void createTestClient() {
-        Client client = new Client();
-        client.setUsername("testClient");
-        client.setEmail("testClient@domain.com");
-        client.setPassword("testPassword");
-        this.testClient = clientService.addClient(client);
-    }
-
-    private void deleteTestClient() {
-        if (this.testClient != null) {
-            clientService.deleteById(this.testClient.getClientId());
-        }
-        this.testClient = null;
-    }
-
-    @Test
-    public void findById() {
-
-        Client retrievedClient = clientService.findById(this.testClient.getClientId());
-
-        assertNotNull(retrievedClient, "retrievedClient not null");
-        assertEquals(this.testClient.getClientId(), retrievedClient.getClientId(), "clientId matches");
-        assertEquals(this.testClient.getUsername(), retrievedClient.getUsername());
-        assertThrows(ResourceNotFoundException.class, () -> clientService.findById(1000),
-                "inexistent id search throws exception");
-
-    }
-
-    @Test
-    public void createClient() {
-
-        Client retrievedClient = clientService.findById(this.testClient.getClientId());
-
-        assertNotEquals(this.testClient.getClientId(), 0, "an id has been generated");
-        assertEquals(retrievedClient, this.testClient, "saved id and retrieved id match");
-        assertEquals(this.testClient.getUsername(), this.testClient.getUsername(), "username saved correctly");
-        assertEquals(this.testClient.getEmail(), this.testClient.getEmail(), "email saved correctly");
-
-    }
-
-    @Test
-    public void updateClient() {
-        Client newClientInfo = new Client();
-        newClientInfo.setClientId(1000);
-        newClientInfo.setPassword("password2");
-        newClientInfo.setUsername("testClient2");
-        newClientInfo.setEmail("testClient2@domain.com");
-
-        Client updatedClient = clientService.updateClient(testClient.getClientId(), newClientInfo);
-
-        assertEquals(testClient.getClientId(), updatedClient.getClientId(), "clientId unchanged");
-        assertEquals("testClient2", updatedClient.getUsername(), "username updated correctly");
-        assertEquals("testClient2@domain.com", updatedClient.getEmail(), "email updated correctly");
-
-        assertThrows(ResourceNotFoundException.class, () -> clientService.updateClient(1000, newClientInfo),
-                "updating an inexistent clientId throws exception");
-    }
-
-    @Test
-    public void partiallyUpdateClient() {
-        Client newClientInfo = new Client();
-        newClientInfo.setClientId(1000);
-        newClientInfo.setUsername("testClient2");
-
-        Client updatedClient = clientService.partiallyUpdateClient(testClient.getClientId(), newClientInfo);
-
-        assertEquals(testClient.getClientId(), updatedClient.getClientId(), "clientId unchanged");
-        assertEquals("testClient2", updatedClient.getUsername(), "username updated correctly");
-        assertEquals("testClient@domain.com", updatedClient.getEmail(), "email unchanged");
-
-        assertThrows(ResourceNotFoundException.class, () -> clientService.partiallyUpdateClient(1000, newClientInfo),
-                "updating an inexistent clientId throws exception");
-    }
-
-    @Test
-    void deleteClient() {
-        Client deletedClient = clientService.deleteById(this.testClient.getClientId());
-
-        assertEquals(this.testClient.getClientId(), deletedClient.getClientId(), "client id correct");
-        assertEquals("testClient", deletedClient.getUsername(), "username correct");
-        assertThrows(ResourceNotFoundException.class, () -> clientService.findById(deletedClient.getClientId()),
-                "clientId no longer found");
-
-        this.testClient = null;
+    void afterEach() {
+        this.clientList = new ArrayList<>();
     }
 
     @Test
     void findAll() {
+        when(clientRepository.findAll()).thenReturn(clientList);
 
-        Client[] sampleClients = {new Client(), new Client(), new Client()};
-        for (int i = 0; i < 3; i ++) {
-            Client client = sampleClients[i];
-            client.setPassword("pwd" + i);
-            client.setUsername("client" + i);
-            client.setEmail("email" + i);
-            sampleClients[i] = clientService.addClient(client);
-        }
+        List<Client> clients = clientService.findAll();
 
-        List<Client> retrievedClients = clientService.findAll();
-        Client lastClient = retrievedClients.get(retrievedClients.size() - 1);
+        assertNotNull(clients, "client list returned");
+        assertEquals(3, clients.size(), "three clients returned");
+        assertEquals(clientList.get(0), clients.get(0), "first client is correct");
+        assertEquals(clientList.get(1), clients.get(1), "second client is correct");
+        assertEquals(clientList.get(2), clients.get(2), "third client is correct");
 
-        assertTrue(retrievedClients.size() >= 3, "there are at least three entries");
-        assertEquals("email2", lastClient.getEmail(), "last email is correct");
-        assertEquals("client2", lastClient.getUsername(), "last username is correct");
-        assertNotNull(lastClient.getPassword(), "last password is not null");
+    }
 
-        for (int i = 0; i < 3; i ++) {
-            clientService.deleteById(sampleClients[i].getClientId());
-        }
+    @Test
+    void findById() {
+        when(clientRepository.findById(0)).thenReturn(Optional.empty());
+        when(clientRepository.findById(1)).thenReturn(Optional.of(clientList.get(0)));
+
+        assertThrows(ResourceNotFoundException.class, () -> clientService.findById(0),
+                "inexistent client throws exception");
+
+        Client client1 = clientService.findById(1);
+        assertNotNull(client1, "a client object is returned");
+        assertNotNull(client1.getClientId(), "a clientId is returned");
+        assertEquals(1, client1.getClientId(), "correct clientId returned");
+        assertEquals(clientList.get(0).getEmail(), client1.getEmail(), "correct email is returned");
+        assertEquals(clientList.get(0).getUsername(), client1.getUsername(), "correct username is returned");
+        assertEquals(clientList.get(0).getPassword(), client1.getPassword(), "correct username is returned");
+    }
+
+    @Test
+    void addClient() {
+        when(clientRepository.save(any())).then(mockRepositorySave());
+
+        Client newClient = clientList.get(0);
+        newClient.setClientId(null);
+        Client savedClient = clientService.addClient(newClient);
+        assertNotNull(savedClient, "a client object is returned");
+        assertNotNull(savedClient.getClientId(), "a clientId is returned");
+        assertEquals(7, savedClient.getClientId(), "correct clientId returned");
+        assertEquals(newClient.getEmail(), savedClient.getEmail(), "correct email is returned");
+        assertEquals(newClient.getUsername(), savedClient.getUsername(), "correct username is returned");
+        assertTrue(passwordEncoder.matches("pwd0", savedClient.getPassword()),
+                "password has been encoded correctly");
+
+        newClient.setUsername("repeated");
+        assertThrows(BadRequestException.class, () -> clientService.addClient(newClient), "wrong data throws exception");
+    }
+
+    @Test
+    void deleteById() {
+        when(clientRepository.findById(0)).thenReturn(Optional.empty());
+        when(clientRepository.findById(1)).thenReturn(Optional.of(clientList.get(0)));
+        doNothing().when(clientRepository).deleteById(ArgumentMatchers.anyInt());
+
+        Client deletedClient = clientService.deleteById(1);
+        assertNotNull(deletedClient, "a client object is returned");
+        assertNotNull(deletedClient.getClientId(), "a clientId is returned");
+        assertEquals(1, deletedClient.getClientId(), "correct clientId returned");
+        assertEquals(clientList.get(0).getEmail(), deletedClient.getEmail(), "correct email is returned");
+        assertEquals(clientList.get(0).getUsername(), deletedClient.getUsername(), "correct username is returned");
+        assertEquals(clientList.get(0).getPassword(), deletedClient.getPassword(), "correct pwd is returned");
+
+        assertThrows(ResourceNotFoundException.class, () -> clientService.deleteById(0));
+    }
+
+    @Test
+    void updateClient() {
+        when(clientRepository.save(any())).then(mockRepositorySave());
+        when(clientRepository.findById(0)).thenReturn(Optional.empty());
+        when(clientRepository.findById(1)).thenReturn(Optional.of(clientList.get(0)));
+
+        Client newClientInfo = clientList.get(2);
+        Client updatedClient = clientService.updateClient(1, newClientInfo);
+
+        assertNotNull(updatedClient.getClientId(), "a clientId is returned");
+        assertEquals(1, updatedClient.getClientId(), "correct clientId returned");
+        assertEquals(clientList.get(2).getEmail(), updatedClient.getEmail(), "correct email is returned");
+        assertEquals(clientList.get(2).getUsername(), updatedClient.getUsername(), "correct username is returned");
+        assertEquals(clientList.get(2).getPassword(), updatedClient.getPassword(), "correct pwd is returned");
+
+        assertThrows(ResourceNotFoundException.class, () -> clientService.updateClient(0, newClientInfo));
+
+        newClientInfo.setUsername("repeated");
+        assertThrows(BadRequestException.class, () -> clientService.updateClient(1, newClientInfo));
+
+    }
+
+    @Test
+    void partiallyUpdateClient() {
+        when(clientRepository.save(any())).then(mockRepositorySave());
+        when(clientRepository.findById(anyInt())).then(invocation -> {
+            int clientId = invocation.getArgument(0);
+            if (clientId < 1 || clientId > 3) throw new ResourceNotFoundException("cleintId:" + clientId);
+            return Optional.of(clientList.get(clientId - 1));
+        });
+        when(clientRepository.findById(1)).thenReturn(Optional.of(clientList.get(0)));
+
+        Client username = new Client();
+        username.setUsername("new username");
+        Client updatedClient = clientService.partiallyUpdateClient(1, username);
+
+        assertNotNull(updatedClient.getClientId(), "a clientId is returned");
+        assertEquals(1, updatedClient.getClientId(), "correct clientId returned");
+        assertEquals(clientList.get(0).getEmail(), updatedClient.getEmail(), "correct email is returned");
+        assertEquals("new username", updatedClient.getUsername(), "correct username is returned");
+        assertEquals(clientList.get(0).getPassword(), updatedClient.getPassword(), "correct username is returned");
+
+        assertThrows(ResourceNotFoundException.class, () -> clientService.partiallyUpdateClient(0, username));
+
+        username.setUsername("repeated");
+        assertThrows(BadRequestException.class, () -> clientService.partiallyUpdateClient(1, username));
+
+        Client email = new Client();
+        email.setEmail("new email");
+        updatedClient = clientService.partiallyUpdateClient(2, email);
+        assertEquals("new email", updatedClient.getEmail(), "correct email is returned");
+        assertEquals(clientList.get(1).getUsername(), updatedClient.getUsername(), "correct username is returned");
+        assertEquals(clientList.get(1).getPassword(), updatedClient.getPassword(), "correct pwd is returned");
+
+        Client password = new Client();
+        password.setPassword("new");
+        updatedClient = clientService.partiallyUpdateClient(3, password);
+        assertEquals(clientList.get(2).getEmail(), updatedClient.getEmail(), "correct email is returned");
+        assertEquals(clientList.get(2).getUsername(), updatedClient.getUsername(), "correct username is returned");
+        assertTrue(passwordEncoder.matches("new", updatedClient.getPassword()), "correct password is returned");
+    }
+
+
+
+    private Answer<Object> mockRepositorySave() {
+        return invocation -> {
+            Client client = invocation.getArgument(0);
+            if (client.getUsername().equals("repeated")) throw new Exception();
+            if (client.getClientId() == 0) client.setClientId(7);
+            return client;
+        };
     }
 }
