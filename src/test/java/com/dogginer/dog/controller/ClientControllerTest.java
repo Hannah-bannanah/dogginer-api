@@ -119,17 +119,16 @@ class ClientControllerTest {
     void createClient() throws Exception {
         Client newClient = this.createTestClient();
         newClient.setClientId(null);
-//        Client savedClient = this.createTestClient();
         Client wrongClient = this.createTestClient();
         wrongClient.setClientId(0);
 
-//        when(clientService.addClient(newClient)).thenReturn(savedClient);
-        when(clientService.addClient(newClient)).then(invocation -> {
+        when(clientService.addClient(ArgumentMatchers.any())).then(invocation -> {
             Client savedClient = invocation.getArgument(0);
+            if (savedClient.getClientId() != null && savedClient.getClientId() == 0)
+                throw new BadRequestException("Bad request");
             savedClient.setClientId(1);
             return savedClient;
         });
-        when(clientService.addClient(wrongClient)).thenThrow(new BadRequestException("Bad request"));
 
         mockMvc.perform(post("/v1/clients")
                 .contentType(MediaType.APPLICATION_JSON)
