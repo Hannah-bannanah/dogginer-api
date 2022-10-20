@@ -31,7 +31,7 @@ public class EventServiceImpl implements IEventService {
 
     /**
      * Searches for an event by id
-     * @param eventId
+     * @param eventId the id of the event to be deleted
      * @return the event if found, null otherwise
      */
     @Override
@@ -97,7 +97,8 @@ public class EventServiceImpl implements IEventService {
         if (origin.getDate() != null) destination.setDate(origin.getDate());
         if (StringUtils.isNotEmpty(origin.getDescription()))
             destination.setDescription(origin.getDescription());
-        if (StringUtils.isNotEmpty(origin.getImageUrl()))
+        if (StringUtils.isNotEmpty(origin.getImageUrl()) &&
+            !StringUtils.equals(origin.getImageUrl(), Event.DEFAULT_IMAGE_URL))
             destination.setImageUrl(origin.getImageUrl());
         if (origin.getPrice() != null) destination.setPrice(origin.getPrice());
         if (StringUtils.isNotEmpty(origin.getTitle())) destination.setTitle(origin.getTitle());
@@ -105,7 +106,7 @@ public class EventServiceImpl implements IEventService {
     }
 
     private Event saveEvent(Event event) {
-        Event updatedEvent = null;
+        Event updatedEvent;
         try {
             updatedEvent = eventRepository.save(event);
         } catch (DataIntegrityViolationException e) {
