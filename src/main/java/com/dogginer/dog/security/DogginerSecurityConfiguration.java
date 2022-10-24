@@ -2,6 +2,7 @@ package com.dogginer.dog.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,32 +22,37 @@ public class DogginerSecurityConfiguration {
 //    @Bean
 //    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 //        http
-//                .csrf().disable()
-//                .authorizeRequests()
-//                .anyRequest().authenticated()
-//                .and()
-//                .httpBasic();
+//            .csrf().disable()
+//            .authorizeRequests()
+//            .anyRequest().permitAll();
 //        return http.build();
 //    }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf().disable()
-                .authorizeRequests()
-                .anyRequest().permitAll();
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
+
+        // define authenticated paths
+        http.authorizeHttpRequests(
+                auth -> auth.anyRequest().authenticated()
+        );
+
+        // define authentication config
+        http.httpBasic();
+
+        // disable csrf
+        http.csrf().disable();
+
         return http.build();
     }
+    @Bean
+    public UserDetailsService users(BCryptPasswordEncoder pwe) {
 
-//    @Bean
-//    public UserDetailsService users(BCryptPasswordEncoder pwe) {
-//
-//        UserDetails admin = User.builder()
-//                .username("admin")
-//                .password(pwe.encode("admin123"))
-//                .roles("ADMIN")
-//                .build();
-//        return new InMemoryUserDetailsManager(admin);
-//    }
+        UserDetails admin = User.builder()
+                .username("admin")
+                .password(pwe.encode("admin123"))
+                .roles("ADMIN")
+                .build();
+        return new InMemoryUserDetailsManager(admin);
+    }
 
 }
