@@ -1,5 +1,6 @@
 package com.dogginer.dog.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
@@ -38,7 +39,8 @@ public @Data class Client extends RepresentationModel<Client> implements Seriali
             }
     )
 
-    @JsonProperty(access = Access.READ_ONLY)
+//    @JsonProperty(access = Access.READ_ONLY)
+    @JsonIgnore
     private Set<Event> attendedEvents = new HashSet<>();
 
     public Client() {

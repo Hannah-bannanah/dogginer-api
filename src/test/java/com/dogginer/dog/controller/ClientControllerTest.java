@@ -3,6 +3,7 @@ package com.dogginer.dog.controller;
 import com.dogginer.dog.exception.BadRequestException;
 import com.dogginer.dog.exception.ResourceNotFoundException;
 import com.dogginer.dog.model.Client;
+import com.dogginer.dog.model.Event;
 import com.dogginer.dog.service.IClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
@@ -19,9 +20,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -72,18 +76,21 @@ class ClientControllerTest {
                 .andExpect(jsonPath("$._embedded.clientList[0].username").value("client0"))
                 .andExpect(jsonPath("$._embedded.clientList[0].email").value("email0"))
                 .andExpect(jsonPath("$._embedded.clientList[0].password").doesNotExist())
+                .andExpect(jsonPath("$._embedded.clientList[0].attendedEvents").doesNotExist())
                 .andExpect(jsonPath("$._embedded.clientList[0]._links").exists())
                 .andExpect(jsonPath("$._embedded.clientList[0]._links.self.href").value("http://localhost/v1/clients/1"))
                 .andExpect(jsonPath("$._embedded.clientList[1].clientId").value("2"))
                 .andExpect(jsonPath("$._embedded.clientList[1].username").value("client1"))
                 .andExpect(jsonPath("$._embedded.clientList[1].email").value("email1"))
                 .andExpect(jsonPath("$._embedded.clientList[1].password").doesNotExist())
+                .andExpect(jsonPath("$._embedded.clientList[1].attendedEvents").doesNotExist())
                 .andExpect(jsonPath("$._embedded.clientList[1]._links").exists())
                 .andExpect(jsonPath("$._embedded.clientList[1]._links.self.href").value("http://localhost/v1/clients/2"))
                 .andExpect(jsonPath("$._embedded.clientList[2].clientId").value("3"))
                 .andExpect(jsonPath("$._embedded.clientList[2].username").value("client2"))
                 .andExpect(jsonPath("$._embedded.clientList[2].email").value("email2"))
                 .andExpect(jsonPath("$._embedded.clientList[2].password").doesNotExist())
+                .andExpect(jsonPath("$._embedded.clientList[2].attendedEvents").doesNotExist())
                 .andExpect(jsonPath("$._embedded.clientList[2]._links").exists())
                 .andExpect(jsonPath("$._embedded.clientList[2]._links.self.href").value("http://localhost/v1/clients/3"));
     }
@@ -98,7 +105,8 @@ class ClientControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("testClient1"))
                 .andExpect(jsonPath("$.email").value("testClient1@email.com"))
-                .andExpect(jsonPath("$.password").doesNotExist());
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.attendedEvents").doesNotExist());
 
         mockMvc.perform(get("/v1/clients/0"))
                 .andExpect(status().isNotFound());
@@ -119,6 +127,8 @@ class ClientControllerTest {
     void createClient() throws Exception {
         Client newClient = this.createTestClient();
         newClient.setClientId(null);
+        newClient.getAttendedEvents().add(new Event());
+
         Client wrongClient = this.createTestClient();
         wrongClient.setClientId(0);
 
@@ -137,7 +147,8 @@ class ClientControllerTest {
                 .andExpect(jsonPath("$.clientId", is(1)))
                 .andExpect(jsonPath("$.username", is("testClient1")))
                 .andExpect(jsonPath("$.email", is("testClient1@email.com")))
-                .andExpect(jsonPath("$.password").doesNotExist());
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.attendedEVents").doesNotExist());
 
         mockMvc.perform(post("/v1/clients")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -167,7 +178,8 @@ class ClientControllerTest {
                 .andExpect(jsonPath("$.clientId").value("1"))
                 .andExpect(jsonPath("$.username").value("updatedUsername"))
                 .andExpect(jsonPath("$.email").value("updatedEmail@email.com"))
-                .andExpect(jsonPath("$.password").doesNotExist());
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.attendedEvents").doesNotExist());
 
         mockMvc.perform(put("/v1/clients/100")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -218,7 +230,8 @@ class ClientControllerTest {
                 .andExpect(jsonPath("$.clientId", is(1)))
                 .andExpect(jsonPath("$.username", is("testClient1")))
                 .andExpect(jsonPath("$.email", is("newEmail@email.com")))
-                .andExpect(jsonPath("$.password").doesNotExist());
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.attendedEvents").doesNotExist());
 
         mockMvc.perform(patch("/v1/clients/1")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -233,7 +246,8 @@ class ClientControllerTest {
                 .andExpect(jsonPath("$.clientId", is(3)))
                 .andExpect(jsonPath("$.username", is("testClient1")))
                 .andExpect(jsonPath("$.email", is("testClient1@email.com")))
-                .andExpect(jsonPath("$.password").doesNotExist());
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.attendedEvents").doesNotExist());
 
         mockMvc.perform(patch("/v1/clients/100")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -256,7 +270,9 @@ class ClientControllerTest {
                 .andExpect(jsonPath("$.clientId").value("1"))
                 .andExpect(jsonPath("$.username").value("testClient1"))
                 .andExpect(jsonPath("$.email").value("testClient1@email.com"))
-                .andExpect(jsonPath("$.password").doesNotExist());
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.attendedEvents").doesNotExist());
+
         mockMvc.perform(delete("/v1/clients/0"))
                 .andExpect(status().isNotFound());
 
